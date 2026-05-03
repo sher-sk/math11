@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>× 11 Math Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #111113;
+      --surface: #1a1a1e;
+      --surface2: #242428;
+      --border: #2e2e34;
+      --text: #f0f0f5;
+      --muted: #7a7a8a;
+      --green: #22c55e;
+      --green-dim: rgba(34,197,94,0.15);
+      --blue: #60a5fa;
+      --red: #f87171;
+      --yellow: #fbbf24;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .screen { display: none; width: 100%; max-width: 480px; padding: 24px 20px; }
+    .screen.active { display: flex; flex-direction: column; align-items: center; }
+
+    /* ── HOME ── */
+    .logo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 3rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 30%, var(--green));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+    .tagline { color: var(--muted); font-size: .95rem; margin-bottom: 40px; }
+
+    .section-label {
+      font-size: .75rem;
+      font-weight: 600;
+      letter-spacing: .1em;
+      color: var(--muted);
+      text-transform: uppercase;
+      align-self: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .digit-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      width: 100%;
+      margin-bottom: 32px;
+    }
+
+    .digit-btn {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 10px;
+      cursor: pointer;
+      transition: all .2s;
+      text-align: center;
+    }
+    .digit-btn:hover { border-color: var(--muted); transform: translateY(-2px); }
+    .digit-btn.selected {
+      border-color: var(--green);
+      background: var(--green-dim);
+      box-shadow: 0 0 20px rgba(34,197,94,.2);
+    }
+    .digit-btn .num { font-family: 'JetBrains Mono', monospace; font-size: 1.8rem; font-weight: 700; }
+    .digit-btn .label { font-size: .75rem; color: var(--muted); margin-top: 4px; }
+
+    .play-btn {
+      width: 100%;
+      padding: 18px;
+      border-radius: 16px;
+      border: 2px solid var(--green);
+      background: var(--green-dim);
+      color: var(--green);
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: .05em;
+      cursor: pointer;
+      transition: all .2s;
+      margin-bottom: 14px;
+      opacity: .4;
+      pointer-events: none;
+    }
+    .play-btn.ready { opacity: 1; pointer-events: all; }
+    .play-btn.ready:hover { background: var(--green); color: #000; box-shadow: 0 8px 30px rgba(34,197,94,.35); transform: translateY(-2px); }
+
+    .hist-btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      border: 2px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .hist-btn:hover { border-color: var(--blue); color: var(--blue); }
+
+    /* ── GAME ── */
+    .game-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      margin-bottom: 8px;
+    }
+    .back-icon {
+      width: 40px; height: 40px;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 1.1rem;
+      transition: border-color .2s;
+    }
+    .back-icon:hover { border-color: var(--muted); }
+
+    .progress-text { font-size: .9rem; font-weight: 600; color: var(--muted); }
+    .timer-badge {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 8px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .95rem; font-weight: 700;
+    }
+
+    .progress-bar-wrap {
+      width: 100%; height: 4px;
+      background: var(--surface2);
+      border-radius: 99px;
+      margin-bottom: 36px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--green), var(--blue));
+      border-radius: 99px;
+      transition: width .4s ease;
+    }
+
+    .problem-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 220px;
+      position: relative;
+    }
+
+    .problem-box {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+    }
+    .problem-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 3.5rem;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--text);
+      transition: opacity .2s;
+    }
+    .problem-mult {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .mult-sign { font-family: 'JetBrains Mono', monospace; font-size: 2rem; color: var(--muted); }
+    .problem-11 { font-family: 'JetBrains Mono', monospace; font-size: 3.5rem; font-weight: 700; }
+    .divider-line {
+      width: 100%;
+      height: 2px;
+      background: var(--border);
+      margin: 8px 0 4px;
+    }
+
+    .flash-correct {
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      background: rgba(34,197,94,.08);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .3s;
+    }
+    .flash-correct.show { opacity: 1; }
+
+    .answer-label {
+      font-size: .7rem;
+      letter-spacing: .12em;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-top: 32px;
+      margin-bottom: 10px;
+    }
+
+    .answer-input {
+      width: 100%;
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      caret-color: var(--green);
+      margin-bottom: 16px;
+    }
+    .answer-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(34,197,94,.15); }
+    .answer-input.correct { border-color: var(--green); background: var(--green-dim); }
+    .answer-input.wrong { border-color: var(--red); box-shadow: 0 0 0 3px rgba(248,113,113,.12); animation: shake .3s; }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    /* Custom numpad */
+    .numpad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      width: 100%;
+    }
+    .numpad-key {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text);
+      cursor: pointer;
+      text-align: center;
+      transition: background .15s, transform .1s, border-color .15s;
+      user-select: none;
+    }
+    .numpad-key:hover { background: var(--surface2); border-color: var(--muted); }
+    .numpad-key:active { transform: scale(.94); }
+    .numpad-key.del { font-size: 1rem; color: var(--red); }
+
+    /* ── RESULT ── */
+    .result-icon { font-size: 4rem; margin-bottom: 16px; }
+    .result-title { font-size: 2rem; font-weight: 800; margin-bottom: 8px; }
+    .result-sub { color: var(--muted); font-size: .95rem; margin-bottom: 32px; }
+    .time-card {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 20px;
+      padding: 28px 40px;
+      text-align: center;
+      margin-bottom: 32px;
+      width: 100%;
+    }
+    .time-card .t-label { font-size: .75rem; letter-spacing: .1em; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+    .time-card .t-value { font-family: 'JetBrains Mono', monospace; font-size: 3rem; font-weight: 700; color: var(--green); }
+    .time-card .t-digits { font-size: .85rem; color: var(--muted); margin-top: 4px; }
+
+    .action-row { display: flex; gap: 12px; width: 100%; }
+    .action-btn {
+      flex: 1; padding: 16px;
+      border-radius: 14px;
+      font-weight: 700; font-size: .95rem;
+      cursor: pointer; transition: all .2s; border: 2px solid;
+    }
+    .action-btn.primary { border-color: var(--green); background: var(--green-dim); color: var(--green); }
+    .action-btn.primary:hover { background: var(--green); color: #000; }
+    .action-btn.secondary { border-color: var(--border); background: transparent; color: var(--muted); }
+    .action-btn.secondary:hover { border-color: var(--muted); color: var(--text); }
+
+    /* ── HISTORY ── */
+    .page-header {
+      display: flex; align-items: center; gap: 14px;
+      width: 100%; margin-bottom: 28px;
+    }
+    .page-title { font-size: 1.4rem; font-weight: 800; }
+    .hist-empty { color: var(--muted); font-size: .95rem; text-align: center; margin-top: 40px; }
+
+    .hist-list { width: 100%; display: flex; flex-direction: column; gap: 10px; max-height: 70vh; overflow-y: auto; }
+    .hist-item {
+      background: var(--surface);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 16px 18px;
+      display: flex; justify-content: space-between; align-items: center;
+      transition: border-color .2s;
+    }
+    .hist-item:hover { border-color: var(--muted); }
+    .hist-left .h-date { font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+    .hist-left .h-digits { font-size: .85rem; font-weight: 600; color: var(--blue); }
+    .hist-right { text-align: right; }
+    .hist-right .h-time { font-family: 'JetBrains Mono', monospace; font-size: 1.2rem; font-weight: 700; color: var(--green); }
+    .hist-right .h-label { font-size: .7rem; color: var(--muted); }
+
+    .clear-hist-btn {
+      margin-top: 16px;
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 2px solid rgba(248,113,113,.3);
+      background: transparent;
+      color: var(--red);
+      font-size: .85rem; font-weight: 600;
+      cursor: pointer; transition: all .2s;
+    }
+    .clear-hist-btn:hover { background: rgba(248,113,113,.1); border-color: var(--red); }
+
+    /* confetti canvas */
+    #confetti-canvas {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none; z-index: 999;
+    }
+  </style>
+</head>
+<body>
+<canvas id="confetti-canvas"></canvas>
+
+<!-- HOME -->
+<div class="screen active" id="home-screen">
+  <div class="logo">× 11</div>
+  <div class="tagline">How fast can you multiply by 11?</div>
+
+  <div class="section-label">Select digit count</div>
+  <div class="digit-grid">
+    <button class="digit-btn" data-digits="2" id="btn-2" onclick="selectDigits(2)">
+      <div class="num">2</div>
+      <div class="label">e.g. 47 × 11</div>
+    </button>
+    <button class="digit-btn" data-digits="3" id="btn-3" onclick="selectDigits(3)">
+      <div class="num">3</div>
+      <div class="label">e.g. 362 × 11</div>
+    </button>
+    <button class="digit-btn" data-digits="4" id="btn-4" onclick="selectDigits(4)">
+      <div class="num">4</div>
+      <div class="label">e.g. 1234 × 11</div>
+    </button>
+  </div>
+
+  <button class="play-btn" id="play-btn" onclick="startGame()">▶  PLAY GAME</button>
+  <button class="hist-btn" onclick="showHistory()">🕐  Show History</button>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="game-screen">
+  <div class="game-header">
+    <div class="back-icon" onclick="goHome()">←</div>
+    <div class="progress-text" id="q-progress">1 / 10</div>
+    <div class="timer-badge">⏱ <span id="timer-display">0:00</span></div>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="prog-fill" style="width:0%"></div>
+  </div>
+
+  <div class="problem-area" id="problem-area">
+    <div class="flash-correct" id="flash"></div>
+    <div class="problem-box">
+      <div class="problem-num" id="problem-num">—</div>
+      <div class="divider-line"></div>
+      <div class="problem-mult">
+        <span class="mult-sign">×</span>
+        <span class="problem-11">11</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="answer-label">Type out your answer</div>
+  <input class="answer-input" id="answer-input" type="text" inputmode="numeric" placeholder="?" autocomplete="off" />
+
+  <div class="numpad" id="numpad">
+    <button class="numpad-key" onclick="numpadPress('1')">1</button>
+    <button class="numpad-key" onclick="numpadPress('2')">2</button>
+    <button class="numpad-key" onclick="numpadPress('3')">3</button>
+    <button class="numpad-key" onclick="numpadPress('4')">4</button>
+    <button class="numpad-key" onclick="numpadPress('5')">5</button>
+    <button class="numpad-key" onclick="numpadPress('6')">6</button>
+    <button class="numpad-key" onclick="numpadPress('7')">7</button>
+    <button class="numpad-key" onclick="numpadPress('8')">8</button>
+    <button class="numpad-key" onclick="numpadPress('9')">9</button>
+    <button class="numpad-key" onclick="numpadPress('.')">.</button>
+    <button class="numpad-key" onclick="numpadPress('0')">0</button>
+    <button class="numpad-key del" onclick="numpadDel()">⌫</button>
+  </div>
+</div>
+
+<!-- RESULT -->
+<div class="screen" id="result-screen">
+  <div class="result-icon">🏆</div>
+  <div class="result-title">Well done!</div>
+  <div class="result-sub">You solved all 10 problems</div>
+  <div class="time-card">
+    <div class="t-label">Total time</div>
+    <div class="t-value" id="result-time">—</div>
+    <div class="t-digits" id="result-digits-label"></div>
+  </div>
+  <div class="action-row">
+    <button class="action-btn primary" onclick="replayGame()">↺  Play Again</button>
+    <button class="action-btn secondary" onclick="goHome()">⌂  Home</button>
+  </div>
+</div>
+
+<!-- HISTORY -->
+<div class="screen" id="history-screen">
+  <div class="page-header">
+    <div class="back-icon" onclick="goHome()">←</div>
+    <div class="page-title">Game History</div>
+  </div>
+  <div class="hist-list" id="hist-list"></div>
+  <div class="hist-empty" id="hist-empty" style="display:none">No games played yet. Start your first game!</div>
+  <button class="clear-hist-btn" id="clear-hist-btn" onclick="clearHistory()" style="display:none">Clear History</button>
+</div>
+
+<script>
+  /* ───── State ───── */
+  let selectedDigits = null;
+  let questions = [];
+  let currentQ = 0;
+  let timerInterval = null;
+  let elapsedSeconds = 0;
+  let gameStartTime = null;
+
+  /* ───── Digit selection ───── */
+  function selectDigits(d) {
+    selectedDigits = d;
+    document.querySelectorAll('.digit-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('btn-' + d).classList.add('selected');
+    document.getElementById('play-btn').classList.add('ready');
+  }
+
+  /* ───── Number generation ───── */
+  function randNum(digits) {
+    const min = Math.pow(10, digits - 1);
+    const max = Math.pow(10, digits) - 1;
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function generateQuestions() {
+    const nums = new Set();
+    while (nums.size < 10) nums.add(randNum(selectedDigits));
+    return [...nums].map(n => ({ number: n, answer: n * 11 }));
+  }
+
+  /* ───── Screen switching ───── */
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  /* ───── Timer ───── */
+  function startTimer() {
+    elapsedSeconds = 0;
+    updateTimerDisplay();
+    timerInterval = setInterval(() => {
+      elapsedSeconds++;
+      updateTimerDisplay();
+    }, 1000);
+  }
+
+  function stopTimer() {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+
+  function updateTimerDisplay() {
+    const m = Math.floor(elapsedSeconds / 60);
+    const s = elapsedSeconds % 60;
+    document.getElementById('timer-display').textContent = m + ':' + String(s).padStart(2, '0');
+  }
+
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    if (m === 0) return s + 's';
+    return m + 'm ' + String(s).padStart(2, '0') + 's';
+  }
+
+  function formatTimeLong(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return m + ':' + String(s).padStart(2, '0');
+  }
+
+  /* ───── Game flow ───── */
+  function startGame() {
+    if (!selectedDigits) return;
+    questions = generateQuestions();
+    currentQ = 0;
+    showScreen('game-screen');
+    startTimer();
+    gameStartTime = new Date();
+    loadQuestion();
+  }
+
+  function loadQuestion() {
+    const q = questions[currentQ];
+    document.getElementById('problem-num').textContent = q.number;
+    document.getElementById('q-progress').textContent = (currentQ + 1) + ' / 10';
+    document.getElementById('prog-fill').style.width = (currentQ / 10 * 100) + '%';
+    const inp = document.getElementById('answer-input');
+    inp.value = '';
+    inp.classList.remove('correct', 'wrong');
+    inp.focus();
+  }
+
+  function checkAnswer() {
+    const inp = document.getElementById('answer-input');
+    const val = parseInt(inp.value, 10);
+    if (isNaN(val)) return;
+
+    const correct = questions[currentQ].answer;
+    if (val === correct) {
+      inp.classList.add('correct');
+      const flash = document.getElementById('flash');
+      flash.classList.add('show');
+      setTimeout(() => flash.classList.remove('show'), 300);
+      setTimeout(() => {
+        currentQ++;
+        if (currentQ >= 10) {
+          finishGame();
+        } else {
+          loadQuestion();
+        }
+      }, 400);
+    } else {
+      inp.classList.add('wrong');
+      setTimeout(() => inp.classList.remove('wrong'), 400);
+    }
+  }
+
+  function finishGame() {
+    stopTimer();
+    const total = elapsedSeconds;
+    // Save to history
+    const history = getHistory();
+    history.unshift({
+      date: gameStartTime.toISOString(),
+      digits: selectedDigits,
+      seconds: total
+    });
+    localStorage.setItem('mathgame_history', JSON.stringify(history.slice(0, 50)));
+
+    // Show result
+    document.getElementById('result-time').textContent = formatTimeLong(total);
+    document.getElementById('result-digits-label').textContent = selectedDigits + '-digit numbers × 11';
+    showScreen('result-screen');
+    launchConfetti();
+  }
+
+  function replayGame() {
+    startGame();
+  }
+
+  function goHome() {
+    stopTimer();
+    showScreen('home-screen');
+  }
+
+  /* ───── Numpad ───── */
+  function numpadPress(char) {
+    const inp = document.getElementById('answer-input');
+    if (inp.value.length >= 8) return;
+    if (char === '.' && inp.value.includes('.')) return;
+    inp.value += char;
+    inp.focus();
+    checkAnswer();
+  }
+
+  function numpadDel() {
+    const inp = document.getElementById('answer-input');
+    inp.value = inp.value.slice(0, -1);
+    inp.focus();
+  }
+
+  // Also support keyboard
+  document.getElementById('answer-input').addEventListener('input', () => {
+    checkAnswer();
+  });
+
+  /* ───── History ───── */
+  function getHistory() {
+    try { return JSON.parse(localStorage.getItem('mathgame_history')) || []; }
+    catch { return []; }
+  }
+
+  function showHistory() {
+    const history = getHistory();
+    const list = document.getElementById('hist-list');
+    const empty = document.getElementById('hist-empty');
+    const clearBtn = document.getElementById('clear-hist-btn');
+    list.innerHTML = '';
+
+    if (history.length === 0) {
+      empty.style.display = 'block';
+      clearBtn.style.display = 'none';
+    } else {
+      empty.style.display = 'none';
+      clearBtn.style.display = 'block';
+      history.forEach(h => {
+        const d = new Date(h.date);
+        const dateStr = d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+        const timeStr = d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+        const item = document.createElement('div');
+        item.className = 'hist-item';
+        item.innerHTML = `
+          <div class="hist-left">
+            <div class="h-date">📅 ${dateStr} &nbsp; 🕐 ${timeStr}</div>
+            <div class="h-digits">${h.digits}-digit × 11</div>
+          </div>
+          <div class="hist-right">
+            <div class="h-time">${formatTimeLong(h.seconds)}</div>
+            <div class="h-label">time taken</div>
+          </div>`;
+        list.appendChild(item);
+      });
+    }
+    showScreen('history-screen');
+  }
+
+  function clearHistory() {
+    if (confirm('Clear all history?')) {
+      localStorage.removeItem('mathgame_history');
+      showHistory();
+    }
+  }
+
+  /* ───── Confetti ───── */
+  function launchConfetti() {
+    const canvas = document.getElementById('confetti-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const pieces = Array.from({ length: 120 }, () => ({
+      x: Math.random() * canvas.width,
+      y: -10 - Math.random() * 100,
+      vx: (Math.random() - .5) * 4,
+      vy: 2 + Math.random() * 3,
+      color: ['#22c55e','#60a5fa','#fbbf24','#f472b6','#a78bfa'][Math.floor(Math.random()*5)],
+      size: 6 + Math.random() * 8,
+      rot: Math.random() * 360,
+      rotV: (Math.random() - .5) * 8
+    }));
+
+    let frame;
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      pieces.forEach(p => {
+        p.x += p.vx; p.y += p.vy; p.rot += p.rotV;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot * Math.PI / 180);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size/2, -p.size/4, p.size, p.size/2);
+        ctx.restore();
+      });
+      if (pieces.some(p => p.y < canvas.height)) frame = requestAnimationFrame(draw);
+      else ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    draw();
+    setTimeout(() => { cancelAnimationFrame(frame); ctx.clearRect(0, 0, canvas.width, canvas.height); }, 3500);
+  }
+</script>
+</body>
+</html>
