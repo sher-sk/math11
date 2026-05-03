@@ -85,6 +85,7 @@
     .digit-btn:hover { border-color: var(--muted); transform: translateY(-2px); }
     .digit-btn.selected {
       border-color: var(--green);
+      color: var(--green);
       background: var(--green-dim);
       box-shadow: 0 0 20px rgba(34,197,94,.2);
     }
@@ -549,7 +550,7 @@
 
     const correct = questions[currentQ].answer;
     if (correct.toString().length != val.toString().length) return;
-    
+
     if (val === correct) {
       inp.classList.add('correct');
       const flash = document.getElementById('flash');
