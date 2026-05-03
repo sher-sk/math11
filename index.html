@@ -458,6 +458,7 @@
     document.getElementById('btn-' + d).classList.add('selected');
     document.getElementById('play-btn').classList.add('ready');
   }
+  selectDigits(2);
 
   /* ───── Number generation ───── */
   function randNum(digits) {
@@ -540,7 +541,9 @@
     if (isNaN(val)) return;
 
     const correct = questions[currentQ].answer;
-    if (correct.length != val.length) return;
+
+    if (correct.toString().length != val.toString().length) return;
+
     if (val === correct) {
       inp.classList.add('correct');
       const flash = document.getElementById('flash');
