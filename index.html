@@ -397,7 +397,7 @@
   </div>
 
   <div class="answer-label">Type out your answer</div>
-  <input class="answer-input" id="answer-input" type="text" inputmode="numeric" placeholder="?" inputmode="none" autocomplete="off" />
+  <input class="answer-input" id="answer-input" type="text" inputmode="numeric" inputmode="none" placeholder="?" autocomplete="off" />
 
   <div class="numpad" id="numpad">
     <button class="numpad-key" onclick="numpadPress('1')">1</button>
@@ -540,6 +540,7 @@
     if (isNaN(val)) return;
 
     const correct = questions[currentQ].answer;
+    if (correct.length != val.length) return;
     if (val === correct) {
       inp.classList.add('correct');
       const flash = document.getElementById('flash');
